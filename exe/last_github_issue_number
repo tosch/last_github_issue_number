@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+require 'Bundler'
+Bundler.setup
+
+require 'github_api'
+
+github_url = `hub browse -u`
+
+url_matches = github_url.match(%r{https://github\.com/(?<org>[^/]+)/(?<repo>[^/]+)})
+
+org = url_matches[:org]
+repo = url_matches[:repo]
+
+hub_config = YAML.load_file(File.join(Dir.home, '.config', 'hub'))
+user_credentials = hub_config.fetch('github.com').first
+
+github = Github.new(user: user_credentials.fetch('user'),
+  oauth_token: user_credentials.fetch('oauth_token'))
+
+issues = github.issues.list(user: org, repo: repo, per_page: 1, page: 1, state: 'all')
+
+if last_issue = issues.first
+  puts "Last issue number for https://github.com/#{org}/#{repo}:"
+  puts last_issue.number
+  puts last_issue.url
+else
+  $stderr.puts "No issues found for https://github.com/#{org}/#{repo}"
+end
